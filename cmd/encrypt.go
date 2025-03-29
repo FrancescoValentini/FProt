@@ -63,7 +63,17 @@ func encrypt(cmd *cobra.Command, args []string) {
 
 	if verboseFlag {
 		fmt.Fprintln(os.Stderr, "IV: "+hex.EncodeToString(iv))
-		fmt.Fprintln(os.Stderr, "KEY: "+hex.EncodeToString(key)) // TODO remove
+	}
+
+	aesGCM, err := cryptography.GetAESGCM(key)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error creating GCM:", err)
+		os.Exit(1)
+	}
+
+	if err := cryptography.Encrypt(aesGCM, iv, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "Encryption failed: %v\n", err)
+		os.Exit(1)
 	}
 
 }
