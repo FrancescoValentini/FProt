@@ -39,7 +39,7 @@ func GetAESGCM(key []byte) (cipher.AEAD, error) {
 	if err != nil {
 		return nil, err
 	}
-	aesGCM, err := cipher.NewGCMWithNonceSize(block, 16)
+	aesGCM, err := cipher.NewGCMWithNonceSize(block, GCM_NONCE_LENGTH)
 	return aesGCM, err
 }
 

@@ -25,7 +25,7 @@ func ParseKey(keyFlag, passwordFlag string, iv []byte) ([]byte, error) {
 		return nil, ErrNoKeyOrPassword
 	}
 
-	if len(key) != 32 {
+	if len(key) != AES_KEY_LENGTH {
 		return nil, ErrInvalidKeyLength
 	}
 
