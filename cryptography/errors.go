@@ -8,3 +8,9 @@ var (
 	ErrInvalidKeyLength = errors.New("invalid key length (must be 32 bytes)")
 	ErrInvalidHexKey    = errors.New("key is not a valid hex string")
 )
+
+// I/O Errors
+var (
+	ErrReadFailed  = errors.New("read operation failed")
+	ErrWriteFailed = errors.New("write operation failed")
+)

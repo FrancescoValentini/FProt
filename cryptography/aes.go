@@ -27,6 +27,8 @@ package cryptography
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"fmt"
+	"io"
 )
 
 // This method returns the 128-bit block cipher initialized with the given key
@@ -39,4 +41,25 @@ func GetAESGCM(key []byte) (cipher.AEAD, error) {
 	}
 	aesGCM, err := cipher.NewGCMWithNonceSize(block, 16)
 	return aesGCM, err
+}
+
+// Encrypts a chunk of data
+func encryptChunk(aesGCM cipher.AEAD, iv, chunk []byte, w io.Writer) error {
+	ciphertext := aesGCM.Seal(nil, iv, chunk, nil)
+	if _, err := w.Write(ciphertext); err != nil {
+		return fmt.Errorf("%w: %v", ErrWriteFailed, err)
+	}
+	return nil
+}
+
+// Decrypts a chunk of data
+func decryptChunk(aesGCM cipher.AEAD, iv, chunk []byte, w io.Writer) error {
+	plaintext, err := aesGCM.Open(nil, iv, chunk, nil)
+	if err != nil {
+		return err
+	}
+	if _, err := w.Write(plaintext); err != nil {
+		return fmt.Errorf("%w: %v", ErrWriteFailed, err)
+	}
+	return nil
 }
