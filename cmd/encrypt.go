@@ -26,6 +26,7 @@ package cmd
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 
 	"github.com/FrancescoValentini/FProt/cryptography"
 	"github.com/spf13/cobra"
@@ -50,11 +51,19 @@ func init() {
 func encrypt(cmd *cobra.Command, args []string) {
 	keyFlag, _ := cmd.Flags().GetString("key")
 	passwordFlag, _ := cmd.Flags().GetString("password")
+	verboseFlag, _ := cmd.Flags().GetBool("verbose")
 
-	iv, _ := cryptography.GenerateRandomBytes(16) // Generates a random IV
+	iv, _ := cryptography.GenerateRandomBytes(16)                // Generates a random IV
+	key, err := cryptography.ParseKey(keyFlag, passwordFlag, iv) // parses the key
 
-	fmt.Println("Key: " + keyFlag)
-	fmt.Println("Password: " + passwordFlag)
-	fmt.Println("IV: " + hex.EncodeToString(iv))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
+	}
+
+	if verboseFlag {
+		fmt.Fprintln(os.Stderr, "IV: "+hex.EncodeToString(iv))
+		fmt.Fprintln(os.Stderr, "KEY: "+hex.EncodeToString(key)) // TODO remove
+	}
 
 }
