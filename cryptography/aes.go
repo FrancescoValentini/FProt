@@ -63,3 +63,18 @@ func decryptChunk(aesGCM cipher.AEAD, iv, chunk []byte, w io.Writer) error {
 	}
 	return nil
 }
+
+func writeIV(iv []byte, w io.Writer) error {
+	if _, err := w.Write(iv); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ReadIV(r io.Reader) ([]byte, error) {
+	iv := make([]byte, 16)
+	if _, err := io.ReadFull(r, iv); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrIVReadFailed, err)
+	}
+	return iv, nil
+}
