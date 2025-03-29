@@ -43,6 +43,37 @@ func GetAESGCM(key []byte) (cipher.AEAD, error) {
 	return aesGCM, err
 }
 
+// Reads, encrypts, and writes the data using the given parameters.
+// The IV is prepended to the ciphertext
+//
+// Note: The buffer size is multiplied by 1024.
+func Encrypt(aesGCM cipher.AEAD, iv []byte, bufferSize int, input io.Reader, output io.Writer) error {
+	if err := writeIV(iv, output); err != nil { // writes the iv
+		return fmt.Errorf("%w: %v", ErrIVWriteFailed, err)
+	}
+
+	buffer := make([]byte, bufferSize*1024) // allocates the buffer
+
+	for {
+		n, err := input.Read(buffer) // reads a chunk of data into the buffer
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("%w: %v", ErrReadFailed, err)
+		}
+
+		// encrypts the chunk of data
+		if n > 0 {
+			if err := encryptChunk(aesGCM, iv, buffer[:n], output); err != nil {
+				return err
+			}
+		}
+
+		if err == io.EOF { // end of file reached
+			break
+		}
+	}
+	return nil
+}
+
 // Encrypts a chunk of data
 func encryptChunk(aesGCM cipher.AEAD, iv, chunk []byte, w io.Writer) error {
 	ciphertext := aesGCM.Seal(nil, iv, chunk, nil)
