@@ -16,3 +16,8 @@ var (
 	ErrIVReadFailed  = errors.New("failed to read initialization vector")
 	ErrIVWriteFailed = errors.New("failed to write initialization vector")
 )
+
+// Cipher errors
+var (
+	ErrDecryptionFailed = errors.New("failed to decrypt")
+)

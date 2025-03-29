@@ -74,6 +74,32 @@ func Encrypt(aesGCM cipher.AEAD, iv []byte, bufferSize int, input io.Reader, out
 	return nil
 }
 
+// Reads, decrypts, and writes the data using the given parameters.
+//
+// Note: The buffer size is multiplied by 1024.
+func Decrypt(aesGCM cipher.AEAD, iv []byte, bufferSize int, input io.Reader, output io.Writer) error {
+	buffer := make([]byte, bufferSize*1024) // allocates the buffer
+
+	for {
+		n, err := input.Read(buffer) // reads a chunk of data into the buffer
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("%w: %v", ErrReadFailed, err)
+		}
+
+		// decrypts the chunk of data
+		if n > 0 {
+			if err := decryptChunk(aesGCM, iv, buffer[:n], output); err != nil {
+				return fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
+			}
+		}
+
+		if err == io.EOF { // end of file reached
+			break
+		}
+	}
+	return nil
+}
+
 // Encrypts a chunk of data
 func encryptChunk(aesGCM cipher.AEAD, iv, chunk []byte, w io.Writer) error {
 	ciphertext := aesGCM.Seal(nil, iv, chunk, nil)
