@@ -27,31 +27,49 @@ git clone https://github.com/FrancescoValentini/FProt && cd FProt
 go build .
 ```
 
-## 📜 Encrypted file structure
+## 📜 Encrypted File Structure
 ```text
+|--------------------------------|
+|     ARGON2id SALT (16 Byte)    |
+|   (only if used with -p flag)  |
 |--------------------------------|
 |         NONCE (16 Byte)        |
 |--------------------------------|
+|     CHUNK COUNTER (4 Byte)     |
+|--------------------------------|
 |                                |
 |                                |
-|                                |
-|         ENCRYPTED DATA         |
-|                                |
+|    ENCRYPTED CHUNK (128 KB)    |
 |                                |
 |                                |
 |--------------------------------|
 |  AUTHENTICATION TAG (16 Byte)  |
 |--------------------------------|
 ```
-### 🛠Hexdump example
+### 🛠 Hexdump example
 To inspect an encrypted message, you can use `xxd`:
 ```bash
-echo -n "abcdefghijklmnop" | fprot encrypt -p password -v | xxd
+echo -n "test" | fprot encrypt -p password | xxd
 ```
 **Output:**
 ```text
-00000000: 0af5 c993 ff78 18cd 760a 2428 44e7 9120  .....x..v.$(D..   < -- NONCE
-00000010: 71ca f3d1 e0af b3f8 243e cb97 1702 6c4b  q.......$>....lK  < -- ENCRYPED DATA (abcdefghijklmnop)
-00000020: a718 edde a791 7182 c33c ab39 e7e9 ef55  ......q..<.9...U  < -- AUTHENTICATION TAG
+00000000: 2ec5 b652 9ff7 1ab0 5f9d e083 ceea 1639  ...R...._......9
+00000010: 7f45 2154 a676 65c5 644d 08a5 937f d4ab  .E!T.ve.dM......
+00000020: 0000 0000 16ec 8c39 ac6c 7276 b4b5 ced3  .......9.lrv....
+00000030: ea92 9456 42f8 2419                      ...VB.$.
 ```
-
+```text
+|----------------------------------|
+| 2ec5b6529ff71ab05f9de083ceea1639 | # ARGON2id Salt
+|----------------------------------|
+| 7f452154a67665c5644d08a5937fd4ab | # AES-GCM Nonce 
+|----------------------------------|
+|             00000000             | # Chunk counter
+|----------------------------------|
+|                                  |
+|             16ec8c39             | # Encrypted chunk
+|                                  |
+|----------------------------------|
+| ac6c7276b4b5ced3ea92945642f82419 | # Authentication tag
+|----------------------------------|
+```
