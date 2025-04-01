@@ -75,13 +75,15 @@ func encrypt(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 	start := time.Now()
-	if err := cryptography.Encrypt(aesGCM, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout); err != nil {
+	chunks, err := cryptography.Encrypt(aesGCM, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Encryption failed: %v\n", err)
 		os.Exit(1)
 	}
 	end := time.Since(start)
 	if verboseFlag {
 		fmt.Fprintf(os.Stderr, "Elapsed time: %v\n", end)
+		fmt.Fprintf(os.Stderr, "Chunks: %v\n", chunks)
 	}
 
 }

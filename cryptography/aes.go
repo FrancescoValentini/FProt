@@ -48,20 +48,20 @@ func GetAESGCM(key []byte) (cipher.AEAD, error) {
 // The IV is prepended to each encrypted chunk, and the tag is appended.
 //
 // Note: The buffer size is multiplied by 1024.
-func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writer) error {
+func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writer) (uint32, error) {
 	buffer := make([]byte, bufferSize*1024)
 	counter := uint32(0) // 4-byte counter
 	for {
 		n, err := input.Read(buffer)
 		if err != nil && err != io.EOF {
-			return fmt.Errorf("%w: %v", ErrReadFailed, err)
+			return 0, fmt.Errorf("%w: %v", ErrReadFailed, err)
 		}
 
 		if n > 0 {
 			// Generate unique IV for each chunk
 			iv, err := GenerateRandomBytes(GCM_NONCE_LENGTH)
 			if err != nil {
-				return fmt.Errorf("%w: %v", ErrIVGenerationFailed, err)
+				return 0, fmt.Errorf("%w: %v", ErrIVGenerationFailed, err)
 			}
 
 			counterBytes := make([]byte, COUNTER_SIZE)
@@ -69,17 +69,17 @@ func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 
 			// Write IV to output
 			if err := WriteIV(iv, output); err != nil {
-				return fmt.Errorf("%w: %v", ErrIVWriteFailed, err)
+				return 0, fmt.Errorf("%w: %v", ErrIVWriteFailed, err)
 			}
 
 			// Write counter to output
 			if _, err := output.Write(counterBytes); err != nil { // write counter
-				return fmt.Errorf("%w: %v", ErrCounterWriteFailed, err)
+				return 0, fmt.Errorf("%w: %v", ErrCounterWriteFailed, err)
 			}
 
 			// encrypts the chunk
 			if err := encryptChunk(aesGCM, iv, buffer[:n], counterBytes, output); err != nil {
-				return fmt.Errorf("%w: %v", ErrWriteFailed, err)
+				return 0, fmt.Errorf("%w: %v", ErrWriteFailed, err)
 			}
 			counter++
 		}
@@ -88,13 +88,13 @@ func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 			break
 		}
 	}
-	return nil
+	return counter, nil
 }
 
 // Decrypt reads, decrypts, and writes data in chunks, verifying each chunk's authentication tag.
 //
 // Note: The buffer size is multiplied by 1024.
-func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writer) error {
+func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writer) (uint32, error) {
 	// Reads the IV (GCM_NONCE_LENGTH bytes) + counter (COUNTER_SIZE bytes)
 	// + encrypted data + tag (16 bytes)
 	readBuffer := make([]byte, bufferSize*1024+GCM_TAG_SIZE)
@@ -108,24 +108,24 @@ func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 			if err == io.EOF {
 				break
 			}
-			return fmt.Errorf("%w: %v", ErrIVReadFailed, err)
+			return 0, fmt.Errorf("%w: %v", ErrIVReadFailed, err)
 		}
 
 		// Reads the counter for this chunk
 		if _, err := io.ReadFull(input, counterBytes); err != nil {
-			return fmt.Errorf("%w: %v", ErrCounterReadFailed, err)
+			return 0, fmt.Errorf("%w: %v", ErrCounterReadFailed, err)
 		}
 
 		// Checks the counter
 		chunkCounter := binary.BigEndian.Uint32(counterBytes)
 		if chunkCounter != expectedCounter {
-			return fmt.Errorf("%w: Expected: %d, got %d", ErrChunkMissmatch, expectedCounter, chunkCounter)
+			return 0, fmt.Errorf("%w: Expected: %d, got %d", ErrChunkMissmatch, expectedCounter, chunkCounter)
 		}
 
 		// Read encrypted data + tag
 		n, err := input.Read(readBuffer)
 		if err != nil && err != io.EOF {
-			return fmt.Errorf("%w: %v", ErrReadFailed, err)
+			return 0, fmt.Errorf("%w: %v", ErrReadFailed, err)
 		}
 
 		// Check if the read data can contain the tag
@@ -133,20 +133,20 @@ func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 			if n == 0 && err == io.EOF {
 				break
 			}
-			return fmt.Errorf("%w: chunk too small to contain tag", ErrDecryptionFailed)
+			return 0, fmt.Errorf("%w: chunk too small to contain tag", ErrDecryptionFailed)
 		}
 
 		// Decrypts this chunk
 		if err := decryptChunk(aesGCM, iv, readBuffer[:n], counterBytes, output); err != nil {
-			return fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
+			return 0, fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
 		}
-
+		expectedCounter++
 		if err == io.EOF { // End of file reached
 			break
 		}
-		expectedCounter++
+
 	}
-	return nil
+	return expectedCounter, nil
 }
 
 // Encrypts a chunk
