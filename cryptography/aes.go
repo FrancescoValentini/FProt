@@ -175,10 +175,6 @@ func decryptChunk(aesGCM cipher.AEAD, iv []byte, buffer, additionalData []byte, 
 	return nil
 }
 
-func checkTagSize(n int) {
-
-}
-
 // WriteIV writes the initialization vector to the writer
 func WriteIV(iv []byte, w io.Writer) error {
 	if _, err := w.Write(iv); err != nil {

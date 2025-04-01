@@ -52,21 +52,25 @@ func decrypt(cmd *cobra.Command, args []string) {
 	keyFlag, _ := cmd.Flags().GetString("key")
 	passwordFlag, _ := cmd.Flags().GetString("password")
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
+	nonce := make([]byte, 16)
+	var err error
 
-	iv, err := cryptography.ReadIV(os.Stdin)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading IV: %v\n", err)
-		os.Exit(1)
+	if passwordFlag != "" {
+		nonce, err = cryptography.ReadIV(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading IV: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
-	key, err := cryptography.ParseKey(keyFlag, passwordFlag, iv)
+	key, err := cryptography.ParseKey(keyFlag, passwordFlag, nonce)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 
 	if verboseFlag {
-		fmt.Fprintln(os.Stderr, "IV: "+hex.EncodeToString(iv))
+		fmt.Fprintln(os.Stderr, "Argon2 Nonce: "+hex.EncodeToString(nonce))
 	}
 
 	aesGCM, err := cryptography.GetAESGCM(key)
