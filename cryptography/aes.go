@@ -27,6 +27,7 @@ package cryptography
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/binary"
 	"fmt"
 	"io"
 )
@@ -49,7 +50,7 @@ func GetAESGCM(key []byte) (cipher.AEAD, error) {
 // Note: The buffer size is multiplied by 1024.
 func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writer) error {
 	buffer := make([]byte, bufferSize*1024)
-
+	counter := uint32(0) // 4-byte counter
 	for {
 		n, err := input.Read(buffer)
 		if err != nil && err != io.EOF {
@@ -63,18 +64,27 @@ func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 				return fmt.Errorf("%w: %v", ErrIVGenerationFailed, err)
 			}
 
+			counterBytes := make([]byte, COUNTER_SIZE)
+			binary.BigEndian.PutUint32(counterBytes, counter)
+
 			// Write IV to output
 			if err := WriteIV(iv, output); err != nil {
 				return fmt.Errorf("%w: %v", ErrIVWriteFailed, err)
 			}
 
-			if err := encryptChunk(aesGCM, iv, buffer[:n], output); err != nil {
-				return fmt.Errorf("%w: %v", ErrWriteFailed, err)
+			// Write counter to output
+			if _, err := output.Write(counterBytes); err != nil { // write counter
+				return fmt.Errorf("%w: %v", ErrCounterWriteFailed, err)
 			}
 
+			// encrypts the chunk
+			if err := encryptChunk(aesGCM, iv, buffer[:n], counterBytes, output); err != nil {
+				return fmt.Errorf("%w: %v", ErrWriteFailed, err)
+			}
+			counter++
 		}
 
-		if err == io.EOF {
+		if err == io.EOF { // End of file reached
 			break
 		}
 	}
@@ -85,17 +95,31 @@ func Encrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 //
 // Note: The buffer size is multiplied by 1024.
 func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writer) error {
-	// Reads the IV (GCM_NONCE_LENGTH bytes) + encrypted data + tag (16 bytes)
+	// Reads the IV (GCM_NONCE_LENGTH bytes) + counter (COUNTER_SIZE bytes)
+	// + encrypted data + tag (16 bytes)
 	readBuffer := make([]byte, bufferSize*1024+GCM_TAG_SIZE)
 	iv := make([]byte, GCM_NONCE_LENGTH)
-
+	expectedCounter := uint32(0)
 	for {
-		// Read IV for this chunk
+		counterBytes := make([]byte, COUNTER_SIZE)
+
+		// Reads IV for this chunk
 		if _, err := io.ReadFull(input, iv); err != nil {
 			if err == io.EOF {
 				break
 			}
 			return fmt.Errorf("%w: %v", ErrIVReadFailed, err)
+		}
+
+		// Reads the counter for this chunk
+		if _, err := io.ReadFull(input, counterBytes); err != nil {
+			return fmt.Errorf("%w: %v", ErrCounterReadFailed, err)
+		}
+
+		// Checks the counter
+		chunkCounter := binary.BigEndian.Uint32(counterBytes)
+		if chunkCounter != expectedCounter {
+			return fmt.Errorf("%w: Expected: %d, got %d", ErrChunkMissmatch, expectedCounter, chunkCounter)
 		}
 
 		// Read encrypted data + tag
@@ -104,6 +128,7 @@ func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 			return fmt.Errorf("%w: %v", ErrReadFailed, err)
 		}
 
+		// Check if the read data can contain the tag
 		if n < GCM_TAG_SIZE {
 			if n == 0 && err == io.EOF {
 				break
@@ -111,21 +136,23 @@ func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 			return fmt.Errorf("%w: chunk too small to contain tag", ErrDecryptionFailed)
 		}
 
-		if err := decryptChunk(aesGCM, iv, readBuffer[:n], output); err != nil {
+		// Decrypts this chunk
+		if err := decryptChunk(aesGCM, iv, readBuffer[:n], counterBytes, output); err != nil {
 			return fmt.Errorf("%w: %v", ErrDecryptionFailed, err)
 		}
 
-		if err == io.EOF {
+		if err == io.EOF { // End of file reached
 			break
 		}
+		expectedCounter++
 	}
 	return nil
 }
 
 // Encrypts a chunk
-func encryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer) error {
+func encryptChunk(aesGCM cipher.AEAD, iv []byte, buffer, additionalData []byte, output io.Writer) error {
 	// Encrypt and authenticate the chunk
-	ciphertext := aesGCM.Seal(nil, iv, buffer, nil)
+	ciphertext := aesGCM.Seal(nil, iv, buffer, additionalData)
 
 	// Write encrypted data with tag
 	if _, err := output.Write(ciphertext); err != nil {
@@ -135,8 +162,8 @@ func encryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer
 }
 
 // Decrypts a chunk of data
-func decryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer) error {
-	plaintext, err := aesGCM.Open(nil, iv, buffer, nil)
+func decryptChunk(aesGCM cipher.AEAD, iv []byte, buffer, additionalData []byte, output io.Writer) error {
+	plaintext, err := aesGCM.Open(nil, iv, buffer, additionalData)
 	if err != nil {
 		return err
 	}
@@ -146,6 +173,10 @@ func decryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer
 		return err
 	}
 	return nil
+}
+
+func checkTagSize(n int) {
+
 }
 
 // WriteIV writes the initialization vector to the writer
