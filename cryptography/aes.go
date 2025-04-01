@@ -122,6 +122,7 @@ func Decrypt(aesGCM cipher.AEAD, bufferSize int, input io.Reader, output io.Writ
 	return nil
 }
 
+// Encrypts a chunk
 func encryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer) error {
 	// Encrypt and authenticate the chunk
 	ciphertext := aesGCM.Seal(nil, iv, buffer, nil)
@@ -133,7 +134,7 @@ func encryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer
 	return nil
 }
 
-// decryptChunk is no longer needed as decryption is handled directly in Decrypt
+// Decrypts a chunk of data
 func decryptChunk(aesGCM cipher.AEAD, iv []byte, buffer []byte, output io.Writer) error {
 	plaintext, err := aesGCM.Open(nil, iv, buffer, nil)
 	if err != nil {
