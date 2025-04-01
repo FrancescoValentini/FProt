@@ -24,7 +24,6 @@ SOFTWARE.
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 
@@ -55,14 +54,14 @@ func encrypt(cmd *cobra.Command, args []string) {
 
 	iv, _ := cryptography.GenerateRandomBytes(16)                // Generates a random IV
 	key, err := cryptography.ParseKey(keyFlag, passwordFlag, iv) // parses the key
-
+	cryptography.WriteIV(iv, os.Stdout)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 
 	if verboseFlag {
-		fmt.Fprintln(os.Stderr, "IV: "+hex.EncodeToString(iv))
+		//fmt.Fprintln(os.Stderr, "IV: "+hex.EncodeToString(iv))
 	}
 
 	aesGCM, err := cryptography.GetAESGCM(key)
@@ -71,7 +70,7 @@ func encrypt(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if err := cryptography.Encrypt(aesGCM, iv, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout); err != nil {
+	if err := cryptography.Encrypt(aesGCM, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Encryption failed: %v\n", err)
 		os.Exit(1)
 	}

@@ -4,4 +4,5 @@ package cryptography
 
 const AES_KEY_LENGTH = 32
 const GCM_NONCE_LENGTH = 16
-const BUFFER_SIZE = 2 // KB
+const BUFFER_SIZE = 500 // KB
+const GCM_TAG_SIZE = 16

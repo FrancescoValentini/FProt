@@ -75,7 +75,7 @@ func decrypt(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	if err := cryptography.Decrypt(aesGCM, iv, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout); err != nil {
+	if err := cryptography.Decrypt(aesGCM, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Decryption failed: %v\n", err)
 		os.Exit(1)
 	}
