@@ -25,20 +25,17 @@ SOFTWARE.
 package cryptography
 
 import (
-	"crypto/sha256"
-
 	"golang.org/x/crypto/argon2"
 )
 
 // This method uses the Argon2id KDF function to derive a 256-bit
 // key from the password.
-func Derive256BitKey(pwd string, iv []byte) []byte {
-	salt := sha256.Sum256(iv) // SHA-256(IV) is used as salt
+func Derive256BitKey(pwd string, salt []byte) []byte {
 	return argon2.IDKey(
 		[]byte(pwd),
-		salt[:],
-		6,        // Iterations
-		128*1024, // Memory (64MB)
+		salt,
+		10,       // Iterations
+		128*1024, // Memory
 		4,        // Threads
 		32,       // Key lenght (32 byte = 256 bit)
 	)
