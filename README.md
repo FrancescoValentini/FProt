@@ -28,14 +28,17 @@ go build .
 ```
 
 ## 📜 Encrypted File Structure
+The Argon2id salt is inserted only at the beginning of the file. Each chunk consists of a nonce, a 32-bit counter, the ciphertext, and an authentication tag.
+
+The counter is authenticated using Additional Authenticated Data (AAD) in AES-GCM and is used to prevent reorder attacks. During decryption, the software verifies that the expected counter matches the one read from the chunk. If this check fails, decryption of subsequent chunks is halted.
 ```text
 |--------------------------------|
-|     ARGON2id SALT (16 Byte)    |
+|    ARGON2id SALT (16 Bytes)    |
 |   (only if used with -p flag)  |
 |--------------------------------|
-|         NONCE (16 Byte)        |
+|         NONCE (16 Bytes)       |
 |--------------------------------|
-|     CHUNK COUNTER (4 Byte)     |
+|     CHUNK COUNTER (4 Bytes)    |
 |--------------------------------|
 |                                |
 |                                |
@@ -43,7 +46,7 @@ go build .
 |                                |
 |                                |
 |--------------------------------|
-|  AUTHENTICATION TAG (16 Byte)  |
+|  AUTHENTICATION TAG (16 Bytes) |
 |--------------------------------|
 ```
 ### 🛠 Hexdump example
@@ -53,23 +56,25 @@ echo -n "test" | fprot encrypt -p password | xxd
 ```
 **Output:**
 ```text
-00000000: 2ec5 b652 9ff7 1ab0 5f9d e083 ceea 1639  ...R...._......9
-00000010: 7f45 2154 a676 65c5 644d 08a5 937f d4ab  .E!T.ve.dM......
-00000020: 0000 0000 16ec 8c39 ac6c 7276 b4b5 ced3  .......9.lrv....
-00000030: ea92 9456 42f8 2419                      ...VB.$.
+00000000: c951 9b2c 5f45 2e79 a888 3926 adbe 53c2  .Q.,_E.y..9&..S.
+00000010: 706c a422 00c6 525f f236 d826 f4c2 b20a  pl."..R_.6.&....
+00000020: 0000 0000 3173 4c42 67b0 bea3 ca0e e7aa  ....1sLBg.......
+00000030: f9e3 a877 7ae6 3edd                      ...wz.>.
 ```
 ```text
 |----------------------------------|
-| 2ec5b6529ff71ab05f9de083ceea1639 | # ARGON2id Salt
+| C9519B2C5F452E79A8883926ADBE53C2 | # ARGON2id Salt
 |----------------------------------|
-| 7f452154a67665c5644d08a5937fd4ab | # AES-GCM Nonce 
+| 706CA42200C6525FF236D826F4C2B20A | # AES-GCM Nonce 
 |----------------------------------|
 |             00000000             | # Chunk counter
 |----------------------------------|
 |                                  |
-|             16ec8c39             | # Encrypted chunk
+|             31734C42             | # Encrypted chunk
 |                                  |
 |----------------------------------|
-| ac6c7276b4b5ced3ea92945642f82419 | # Authentication tag
+| 67B0BEA3CA0EE7AAF9E3A8777AE63EDD | # Authentication tag
 |----------------------------------|
 ```
+## Disclaimer
+I am not a professional cryptographer / developer, and this project was created primarily as my first Go project to learn the language, future updates may introduce changes without notice, potentially breaking compatibility with previous versions (e.g., changes in the encrypted file format). Use at your own risk!
