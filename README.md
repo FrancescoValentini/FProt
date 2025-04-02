@@ -8,7 +8,8 @@ The software operates as a stream processor, reading from **stdin** and writing 
 > The encryption key (256-bit) is derived from a user-provided password using the **Argon2id** key derivation function, which offers strong resistance against brute-force attacks. However, security is only as strong as the password chosen—weak passwords may compromise protection.  
 
 > [!NOTE]
-> Although the standard nonce size in AES GCM is 12 bytes, in this implementation it was chosen to use a 16 byte nonce. This choice is allowed by NIST [(NIST Special Publication 800-38D, Section. 8.2.2)](https://csrc.nist.gov/pubs/sp/800/38/d/final) and recommended in case of randomly generated nonces.
+> Although the standard nonce size in AES GCM is 12 bytes, in this implementation it was chosen to use a 16 byte nonce. This choice is allowed by NIST [NIST Special Publication 800-38D, Section. 8.2.2](https://csrc.nist.gov/pubs/sp/800/38/d/final)
+
 ## 🚀 Usage
 ```sh
 # Encrypting a file
