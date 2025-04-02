@@ -27,31 +27,54 @@ git clone https://github.com/FrancescoValentini/FProt && cd FProt
 go build .
 ```
 
-## 📜 Encrypted file structure
+## 📜 Encrypted File Structure
+The Argon2id salt is inserted only at the beginning of the file. Each chunk consists of a nonce, a 32-bit counter, the ciphertext, and an authentication tag.
+
+The counter is authenticated using Additional Authenticated Data (AAD) in AES-GCM and is used to prevent reorder attacks. During decryption, the software verifies that the expected counter matches the one read from the chunk. If this check fails, decryption of subsequent chunks is halted.
 ```text
 |--------------------------------|
-|         NONCE (16 Byte)        |
+|    ARGON2id SALT (16 Bytes)    |
+|   (only if used with -p flag)  |
+|--------------------------------|
+|         NONCE (16 Bytes)       |
+|--------------------------------|
+|     CHUNK COUNTER (4 Bytes)    |
 |--------------------------------|
 |                                |
 |                                |
-|                                |
-|         ENCRYPTED DATA         |
-|                                |
+|    ENCRYPTED CHUNK (128 KB)    |
 |                                |
 |                                |
 |--------------------------------|
-|  AUTHENTICATION TAG (16 Byte)  |
+|  AUTHENTICATION TAG (16 Bytes) |
 |--------------------------------|
 ```
-### 🛠Hexdump example
+### 🛠 Hexdump example
 To inspect an encrypted message, you can use `xxd`:
 ```bash
-echo -n "abcdefghijklmnop" | fprot encrypt -p password -v | xxd
+echo -n "test" | fprot encrypt -p password | xxd
 ```
 **Output:**
 ```text
-00000000: 0af5 c993 ff78 18cd 760a 2428 44e7 9120  .....x..v.$(D..   < -- NONCE
-00000010: 71ca f3d1 e0af b3f8 243e cb97 1702 6c4b  q.......$>....lK  < -- ENCRYPED DATA (abcdefghijklmnop)
-00000020: a718 edde a791 7182 c33c ab39 e7e9 ef55  ......q..<.9...U  < -- AUTHENTICATION TAG
+00000000: c951 9b2c 5f45 2e79 a888 3926 adbe 53c2  .Q.,_E.y..9&..S.
+00000010: 706c a422 00c6 525f f236 d826 f4c2 b20a  pl."..R_.6.&....
+00000020: 0000 0000 3173 4c42 67b0 bea3 ca0e e7aa  ....1sLBg.......
+00000030: f9e3 a877 7ae6 3edd                      ...wz.>.
 ```
-
+```text
+|----------------------------------|
+| C9519B2C5F452E79A8883926ADBE53C2 | # ARGON2id Salt
+|----------------------------------|
+| 706CA42200C6525FF236D826F4C2B20A | # AES-GCM Nonce 
+|----------------------------------|
+|             00000000             | # Chunk counter
+|----------------------------------|
+|                                  |
+|             31734C42             | # Encrypted chunk
+|                                  |
+|----------------------------------|
+| 67B0BEA3CA0EE7AAF9E3A8777AE63EDD | # Authentication tag
+|----------------------------------|
+```
+## Disclaimer
+I am not a professional cryptographer / developer, and this project was created primarily as my first Go project to learn the language, future updates may introduce changes without notice, potentially breaking compatibility with previous versions (e.g., changes in the encrypted file format). Use at your own risk!
