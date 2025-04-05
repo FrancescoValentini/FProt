@@ -4,9 +4,11 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 
+	"github.com/FrancescoValentini/FProt/cryptography"
 	"github.com/spf13/cobra"
 )
 
@@ -38,16 +40,31 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// deriveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	rootCmd.PersistentFlags().StringP("nonce", "n", "", "The Argon2id nonce (hex format)")
+	deriveCmd.PersistentFlags().StringP("nonce", "n", "", "The Argon2id nonce (hex format)")
 
 }
 
 func derive(cmd *cobra.Command, args []string) {
 	passwordFlag, _ := cmd.Flags().GetString("password")
+	nonceFlag, _ := cmd.Flags().GetString("nonce")
+	nonce := make([]byte, 16)
+	var err error
 
 	if passwordFlag == "" {
-		fmt.Fprintf(os.Stderr, "Password must be specified with the -p flag")
+		fmt.Fprintf(os.Stderr, "Password must be specified with the -p flag.")
 		os.Exit(1)
 	}
 
+	if nonceFlag == "" {
+		nonce, _ = cryptography.GenerateRandomBytes(16)
+	} else {
+		nonce, err = hex.DecodeString(nonceFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid nonce.")
+		}
+	}
+
+	key := cryptography.Derive256BitKey(passwordFlag, nonce)
+	fmt.Fprintln(os.Stderr, "Argon2 Nonce: "+hex.EncodeToString(nonce))
+	fmt.Fprintln(os.Stderr, "Derived Key: "+hex.EncodeToString(key))
 }
