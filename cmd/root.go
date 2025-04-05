@@ -47,9 +47,19 @@ Author: Francesco Valentini`,
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
 
-	/*Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Simple Command!")
-	}*/
+	Run: func(cmd *cobra.Command, args []string) {
+		// Checks if stdin is redirected (i.e. not a terminal)
+		stdinStat, _ := os.Stdin.Stat()
+		isInputFromPipe := (stdinStat.Mode() & os.ModeCharDevice) == 0
+
+		if isInputFromPipe {
+			// Execute the encrypt command
+			encryptCmd.Run(cmd, args)
+		} else {
+			// show help command
+			_ = cmd.Help()
+		}
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
