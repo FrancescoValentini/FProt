@@ -67,4 +67,10 @@ func derive(cmd *cobra.Command, args []string) {
 	key := cryptography.Derive256BitKey(passwordFlag, nonce)
 	fmt.Fprintln(os.Stderr, "Argon2 Nonce: "+hex.EncodeToString(nonce))
 	fmt.Fprintln(os.Stderr, "Derived Key: "+hex.EncodeToString(key))
+
+	fmt.Fprintf(os.Stderr, "Argon2 iterations: %d\n", cryptography.ARGON2ID_ITERATIONS)
+	fmt.Fprintf(os.Stderr, "Argon2 memory: %d\n", cryptography.ARGON2ID_MEMORY)
+	fmt.Fprintf(os.Stderr, "Argon2 threads: %d\n", cryptography.ARGON2ID_THREADS)
+	fmt.Fprintf(os.Stderr, "Argon2 key length: %d\n", cryptography.ARGON2ID_KEY_LENGTH)
+
 }
