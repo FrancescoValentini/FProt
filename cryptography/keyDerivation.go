@@ -34,9 +34,9 @@ func Derive256BitKey(pwd string, salt []byte) []byte {
 	return argon2.IDKey(
 		[]byte(pwd),
 		salt,
-		10,       // Iterations
-		128*1024, // Memory
-		4,        // Threads
-		32,       // Key lenght (32 byte = 256 bit)
+		ARGON2ID_ITERATIONS, // Iterations
+		ARGON2ID_MEMORY,     // Memory
+		ARGON2ID_THREADS,    // Threads
+		ARGON2ID_KEY_LENGTH, // Key lenght (32 byte = 256 bit)
 	)
 }
