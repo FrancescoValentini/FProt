@@ -11,8 +11,10 @@ var (
 
 // Files errors
 var (
-	ErrInvalidPath = errors.New("invalid path")
-	ErrIsFolder    = errors.New("the path is a folder")
-	ErrReadingFile = errors.New("failed to read file")
-	ErrWritingFile = errors.New("failed to write file")
+	ErrInvalidPath  = errors.New("invalid path")
+	ErrIsFolder     = errors.New("the path is a folder")
+	ErrReadingFile  = errors.New("failed to read file")
+	ErrWritingFile  = errors.New("failed to write file")
+	ErrFileExist    = errors.New("the file already exists")
+	ErrFileNotExist = errors.New("the file does not exist")
 )
