@@ -1,6 +1,7 @@
 package ecies
 
 import (
+	"crypto/ecdh"
 	"crypto/rand"
 	"crypto/sha512"
 	"fmt"
@@ -9,7 +10,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-// Encrypt a symmetric key for a recipient using their public key.
+// Encrypts a symmetric key for a recipient using their public key.
 func ECCWrapKey(recipient []byte, key []byte) ([]byte, error) {
 	// 1) Loads the recipient public key
 	recipientPublicKey, err := LoadPublicKey(recipient)
@@ -46,6 +47,37 @@ func ECCWrapKey(recipient []byte, key []byte) ([]byte, error) {
 	packedKey := safeConcat(ephemeralPub, encryptedKey)
 
 	return packedKey, nil
+}
+
+// Decrypts a symmetric key that was wrapped using ECIES
+func ECCUnwrapKey(privateKey *ecdh.PrivateKey, wrappedKey []byte) ([]byte, error) {
+	if len(wrappedKey) < CURVE_PUBLIC_KEY_LENGTH {
+		return nil, fmt.Errorf("%w", ErrInvalidWrappedKey)
+	}
+
+	//1) Recovers the ephemeral public key
+	ephemeralPubBytes := wrappedKey[:CURVE_PUBLIC_KEY_LENGTH]
+	encryptedKey := wrappedKey[CURVE_PUBLIC_KEY_LENGTH:]
+
+	ephemeralPubKey, err := LoadPublicKey(ephemeralPubBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	//2) Calculates the shared secret
+	sharedSecret, err := privateKey.ECDH(ephemeralPubKey)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrSharedSecret, err)
+	}
+
+	//3) Derives the AES Wrap key
+	recipient := privateKey.PublicKey().Bytes()
+	salt := safeConcat(ephemeralPubBytes, recipient)
+
+	wrappingKey := deriveSecretKey(sharedSecret, salt, []byte(HKDF_INFO_SHARED_SECRET), 32)
+
+	//4) Unwraps the key
+	return aesUnwrapKey(encryptedKey, wrappingKey)
 }
 
 // Derives a secret key of the specified size using HKDF
