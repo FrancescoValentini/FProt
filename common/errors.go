@@ -8,3 +8,11 @@ var (
 	ErrInvalidPublicKeyFormat  = errors.New("invalid public key format")
 	ErrInvalidPrivateKeyFormat = errors.New("invalid private key format")
 )
+
+// Files errors
+var (
+	ErrInvalidPath = errors.New("invalid path")
+	ErrIsFolder    = errors.New("the path is a folder")
+	ErrReadingFile = errors.New("failed to read file")
+	ErrWritingFile = errors.New("failed to write file")
+)
