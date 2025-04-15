@@ -1,0 +1,10 @@
+package main
+
+import "errors"
+
+// Encoding errors
+var (
+	ErrInvalidBase64           = errors.New("failed to decode base64")
+	ErrInvalidPublicKeyFormat  = errors.New("invalid public key format")
+	ErrInvalidPrivateKeyFormat = errors.New("invalid private key format")
+)
