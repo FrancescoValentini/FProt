@@ -47,6 +47,9 @@ Example:
 
 func init() {
 	rootCmd.AddCommand(decryptCmd)
+
+	decryptCmd.PersistentFlags().StringP("priv-in", "s", "", "The private (secret) key")
+
 }
 
 func decrypt(cmd *cobra.Command, args []string) {
