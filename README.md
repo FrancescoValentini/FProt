@@ -12,11 +12,20 @@ The software operates as a stream processor, reading from **stdin** and writing 
 
 ## 🚀 Usage
 ```sh
-# Encrypting a file
+# Encrypting a file with a password
 fprot encrypt -p mypassword < plain.txt > cipher.fprot
 
-# Decrypting a file
+# Decrypting a file with a password
 fprot decrypt -p mypassword < cipher.fprot > plain.txt
+
+# Generating ECC Keys
+fprot keygen --priv-out my-private.txt --pub-out recipient-key.txt
+
+# Encrypting a file with a public key
+fprot encrypt -r recipient-key.txt < plain.txt > cipher.fprot
+
+# Decrypting a file with a private key
+fprot decrypt -s my-private.txt < cipher.fprot > plain.txt
 ```
 
 ## 🔧 Building
@@ -31,7 +40,6 @@ go build .
 ## 📜 Encrypted File Structure
 The Argon2id salt is inserted only at the beginning of the file. Each chunk consists of a nonce, a 32-bit counter, the ciphertext, and an authentication tag.
 
-The counter is authenticated using Additional Authenticated Data (AAD) in AES-GCM and is used to prevent reorder attacks. During decryption, the software verifies that the expected counter matches the one read from the chunk. If this check fails, decryption of subsequent chunks is halted.
 ```text
 |--------------------------------|
 |    ARGON2id SALT (16 Bytes)    |
@@ -50,6 +58,31 @@ The counter is authenticated using Additional Authenticated Data (AAD) in AES-GC
 |  AUTHENTICATION TAG (16 Bytes) |
 |--------------------------------|
 ```
+
+### Asymmetric encryption file structure
+If asymmetric encryption is used, the header is 157 bytes in size and contains 97 bytes of ECC public key + 60 bytes composed of iv (12 bytes) + encrypted aes key (32 bytes) + AES-GCM auth tag (16 bytes)
+```text
+|--------------------------------|
+|  ASYMMETRIC ENCRYPTION HEADER  |
+|          (157 Bytes)           |
+|--------------------------------|
+|     CHUNK COUNTER (4 Bytes)    |
+|--------------------------------|
+|                                |
+|                                |
+|    ENCRYPTED CHUNK (128 KB)    |
+|                                |
+|                                |
+|--------------------------------|
+|  AUTHENTICATION TAG (16 Bytes) |
+|--------------------------------|
+```
+
+### The counter
+The counter is authenticated using Additional Authenticated Data (AAD) in AES-GCM and is used to prevent reorder attacks. During decryption, the software verifies that the expected counter matches the one read from the chunk. If this check fails, decryption of subsequent chunks is halted.
+
+
+
 ### 🛠 Hexdump example
 To inspect an encrypted message, you can use `xxd`:
 ```bash
