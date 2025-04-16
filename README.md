@@ -66,6 +66,8 @@ If asymmetric encryption is used, the header is 157 bytes in size and contains 9
 |  ASYMMETRIC ENCRYPTION HEADER  |
 |          (157 Bytes)           |
 |--------------------------------|
+|         NONCE (16 Bytes)       |
+|--------------------------------|
 |     CHUNK COUNTER (4 Bytes)    |
 |--------------------------------|
 |                                |
