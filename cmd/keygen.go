@@ -28,7 +28,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/FrancescoValentini/FProt/common"
 	"github.com/FrancescoValentini/FProt/ecies"
@@ -86,34 +85,13 @@ func keyGen(cmd *cobra.Command, args []string) {
 // or generates a new ECDH private key if no input is provided.
 func getOrGeneratePrivateKey(privInFlag string) (*ecdh.PrivateKey, error) {
 	if privInFlag != "" {
-		rawKey, err := loadPrivate(privInFlag)
+		rawKey, err := common.LoadPrivate(privInFlag)
 		if err != nil {
 			return nil, err
 		}
 		return ecies.LoadPrivateKey(rawKey)
 	}
 	return ecies.GeneratePrivateKey(rand.Reader)
-}
-
-// Loads a private key from either a direct string input or a file.
-func loadPrivate(privateKey string) ([]byte, error) {
-	if strings.Contains(privateKey, common.PRIVATE_KEY_HEADER) {
-		key, err := common.DecodePrivateKey(privateKey)
-		if err != nil {
-			return nil, err
-		}
-		return key, nil
-	} else {
-		encoded, err := common.ReadFile(privateKey)
-		if err != nil {
-			return nil, err
-		}
-		key, err := common.DecodePrivateKey(encoded)
-		if err != nil {
-			return nil, err
-		}
-		return key, nil
-	}
 }
 
 // Prints the data to stderr or writes it to a file,
