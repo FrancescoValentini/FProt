@@ -24,11 +24,11 @@ SOFTWARE.
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/FrancescoValentini/FProt/common"
 	"github.com/FrancescoValentini/FProt/cryptography"
 	"github.com/spf13/cobra"
 )
@@ -53,20 +53,13 @@ func encrypt(cmd *cobra.Command, args []string) {
 	keyFlag, _ := cmd.Flags().GetString("key")
 	passwordFlag, _ := cmd.Flags().GetString("password")
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
+	recipientFlag, _ := cmd.Flags().GetString("recipient")
+	var key []byte
 
-	nonce, _ := cryptography.GenerateRandomBytes(16)                // Generates a random nonce
-	key, err := cryptography.ParseKey(keyFlag, passwordFlag, nonce) // parses the key
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
-	}
-
-	if passwordFlag != "" {
-		cryptography.WriteIV(nonce, os.Stdout)
-	}
-
-	if verboseFlag {
-		fmt.Fprintln(os.Stderr, "Argon2 Nonce: "+hex.EncodeToString(nonce))
+	if recipientFlag != "" {
+		key = common.EncryptAsymmetricKey(recipientFlag, os.Stdout)
+	} else {
+		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag)
 	}
 
 	aesGCM, err := cryptography.GetAESGCM(key)
