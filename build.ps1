@@ -74,7 +74,7 @@ foreach ($target in $Targets) {
     $outputFile = "$OutputDir\$fileName"
     Write-Host "Building for: $GOOS/$GOARCH - $outputFile"
 
-    go build -o $outputFile
+    go build -ldflags "-s -w" -o $outputFile
 
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "Build failed for $GOOS/$GOARCH"
