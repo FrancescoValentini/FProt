@@ -56,7 +56,7 @@ func EncryptAsymmetricKey(recipient string, w io.Writer) []byte {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
-	fmt.Fprintf(os.Stderr, "%d\n", len(wrappedKey))
+
 	if _, err := w.Write(wrappedKey); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
