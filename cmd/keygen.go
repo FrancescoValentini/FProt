@@ -25,11 +25,13 @@ package cmd
 
 import (
 	"crypto/ecdh"
+	"crypto/ecdsa"
 	"crypto/rand"
 	"fmt"
 	"os"
 
 	"github.com/FrancescoValentini/FProt/common"
+	"github.com/FrancescoValentini/FProt/digitalsignature"
 	"github.com/FrancescoValentini/FProt/ecies"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +40,7 @@ import (
 var keygenCmd = &cobra.Command{
 	Use:   "keygen",
 	Short: "Generate ECC key pairs",
-	Long: `Handle NIST P-384 ECC key pairs generation for asymmetric encryption.
+	Long: `Handle NIST P-384 ECC key pairs generation for asymmetric encryption and digital signature.
 
 This command can:
 - Generate a new private + public key pair, or
@@ -59,6 +61,7 @@ func init() {
 	keygenCmd.PersistentFlags().StringP("priv-out", "", "", "Output file path for the private key")
 	keygenCmd.PersistentFlags().StringP("pub-out", "", "", "Output file path for the public key")
 	keygenCmd.PersistentFlags().StringP("priv-in", "", "", "The file where the private key is read")
+	keygenCmd.PersistentFlags().BoolP("ecdsa", "", false, "If set generate ECDSA keys")
 
 }
 
@@ -66,7 +69,24 @@ func keyGen(cmd *cobra.Command, args []string) {
 	privOutFlag, _ := cmd.Flags().GetString("priv-out")
 	pubOutFlag, _ := cmd.Flags().GetString("pub-out")
 	privInFlag, _ := cmd.Flags().GetString("priv-in")
+	ecdsaFlag, _ := cmd.Flags().GetBool("ecdsa")
+	var encodedPrivate, encodedPublic, publicKeyID string
+	if !ecdsaFlag {
+		encodedPrivate, encodedPublic, publicKeyID = generateECDHKeys(privInFlag)
+	} else {
+		encodedPrivate, encodedPublic, publicKeyID = generateECDSAKeys(privInFlag)
+	}
 
+	printOrWriteKey(privOutFlag, encodedPrivate)
+	if privOutFlag == "" {
+		fmt.Fprintln(os.Stderr, "")
+	}
+	printOrWriteKey(pubOutFlag, encodedPublic)
+
+	fmt.Fprintf(os.Stderr, "\nPublic Key ID: %s\n", publicKeyID)
+}
+
+func generateECDHKeys(privInFlag string) (string, string, string) {
 	privateKey, err := getOrGeneratePrivateKey(privInFlag)
 	if err != nil {
 		exitWithError("", err)
@@ -76,13 +96,26 @@ func keyGen(cmd *cobra.Command, args []string) {
 
 	publicKeyID := ecies.GetPublicKeyID(privateKey.PublicKey().Bytes())
 
-	printOrWriteKey(privOutFlag, encodedPrivate)
-	if privOutFlag == "" {
-		fmt.Fprintln(os.Stderr, "")
-	}
-	printOrWriteKey(pubOutFlag, encodedPublic)
+	return encodedPrivate, encodedPublic, publicKeyID
+}
 
-	fmt.Fprintf(os.Stderr, "\nPublic Key ID: %s\n", publicKeyID)
+func generateECDSAKeys(privInFlag string) (string, string, string) {
+	privateKey, err := getOrGenerateECDSAPrivateKey(privInFlag)
+	if err != nil {
+		exitWithError("", err)
+	}
+
+	encodedPrivate, encodedPublic, err := common.EncodeECDSAKeys(privateKey)
+	if err != nil {
+		exitWithError("", err)
+	}
+	pubBytes, err := digitalsignature.PublicKeyToBytes(&privateKey.PublicKey)
+	if err != nil {
+		exitWithError("", err)
+	}
+	publicKeyID := ecies.GetPublicKeyID(pubBytes)
+
+	return encodedPrivate, encodedPublic, publicKeyID
 }
 
 // Loads an existing private key from the provided flag value
@@ -96,6 +129,19 @@ func getOrGeneratePrivateKey(privInFlag string) (*ecdh.PrivateKey, error) {
 		return ecies.LoadPrivateKey(rawKey)
 	}
 	return ecies.GeneratePrivateKey(rand.Reader)
+}
+
+// Loads an existing private key from the provided flag value
+// or generates a new ECDSA private key if no input is provided.
+func getOrGenerateECDSAPrivateKey(privInFlag string) (*ecdsa.PrivateKey, error) {
+	if privInFlag != "" {
+		rawKey, err := common.LoadECDSAPrivate(privInFlag)
+		if err != nil {
+			return nil, err
+		}
+		return digitalsignature.PrivateKeyFromBytes(rawKey)
+	}
+	return digitalsignature.GeneratePrivateKey(rand.Reader)
 }
 
 // Prints the data to stderr or writes it to a file,
