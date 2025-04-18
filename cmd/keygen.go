@@ -72,7 +72,7 @@ func keyGen(cmd *cobra.Command, args []string) {
 		exitWithError("", err)
 	}
 
-	encodedPrivate, encodedPublic := common.EncodeECCKeys(privateKey)
+	encodedPrivate, encodedPublic := common.EncodeECDHKeys(privateKey)
 
 	publicKeyID := ecies.GetPublicKeyID(privateKey.PublicKey().Bytes())
 

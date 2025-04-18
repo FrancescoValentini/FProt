@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Encodes ECC private and public keys into base64url strings with appropriate headers.
-func EncodeECCKeys(privateKey *ecdh.PrivateKey) (string, string) {
+// Encodes ECDH private and public keys into base64url strings with appropriate headers.
+func EncodeECDHKeys(privateKey *ecdh.PrivateKey) (string, string) {
 	publicKeyBytes := privateKey.PublicKey().Bytes()
 	privateKeyBytes := privateKey.Bytes()
 
