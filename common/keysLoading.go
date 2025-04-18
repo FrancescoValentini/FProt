@@ -38,7 +38,7 @@ func SymmetricKey(keyFlag string, passwordFlag string, verboseFlag bool) []byte 
 // for the specified recipient using ECC (Elliptic Curve Cryptography).
 // The encrypted key is written to the provided writer 'w'.
 // Returns the generated symmetric key as a byte slice.
-func EncryptAsymmetricKey(recipient string, w io.Writer) []byte {
+func EncryptAsymmetricKey(recipient string, w io.Writer, verboseFlag bool) []byte {
 	key, err := cryptography.GenerateRandomBytes(32) // generates a random 256 bit key
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
@@ -60,6 +60,11 @@ func EncryptAsymmetricKey(recipient string, w io.Writer) []byte {
 	if _, err := w.Write(wrappedKey); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
+	}
+
+	if verboseFlag {
+		publicKeyID := ecies.GetPublicKeyID(rawPublic)
+		fmt.Fprintf(os.Stderr, "Recipient: %s\n", publicKeyID)
 	}
 
 	return key

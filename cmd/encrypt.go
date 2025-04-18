@@ -57,7 +57,7 @@ func encrypt(cmd *cobra.Command, args []string) {
 	var key []byte
 
 	if recipientFlag != "" {
-		key = common.EncryptAsymmetricKey(recipientFlag, os.Stdout)
+		key = common.EncryptAsymmetricKey(recipientFlag, os.Stdout, verboseFlag)
 	} else {
 		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag)
 	}

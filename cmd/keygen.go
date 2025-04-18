@@ -74,11 +74,15 @@ func keyGen(cmd *cobra.Command, args []string) {
 
 	encodedPrivate, encodedPublic := common.EncodeECCKeys(privateKey)
 
+	publicKeyID := ecies.GetPublicKeyID(privateKey.PublicKey().Bytes())
+
 	printOrWriteKey(privOutFlag, encodedPrivate)
 	if privOutFlag == "" {
 		fmt.Fprintln(os.Stderr, "")
 	}
 	printOrWriteKey(pubOutFlag, encodedPublic)
+
+	fmt.Fprintf(os.Stderr, "\nPublic Key ID: %s\n", publicKeyID)
 }
 
 // Loads an existing private key from the provided flag value
