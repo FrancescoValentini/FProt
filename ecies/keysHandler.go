@@ -2,6 +2,8 @@ package ecies
 
 import (
 	"crypto/ecdh"
+	"crypto/sha512"
+	"encoding/base64"
 	"fmt"
 	"io"
 )
@@ -31,4 +33,26 @@ func LoadPrivateKey(privateKeyBytes []byte) (*ecdh.PrivateKey, error) {
 		return nil, fmt.Errorf("%w: %v", ErrECCPrivateKeyLoad, err)
 	}
 	return privKey, err
+}
+
+// Generates a truncated SHA-384 hash of the input data
+// to use as a raw public key ID.
+func rawPublicKeyID(data []byte) []byte {
+	hash := sha512.Sum384(data) // 48 bytes
+	truncated := hash[:20]      // 20 bytes
+	return truncated
+}
+
+// Generates a base64 URL-encoded string representation of a public key ID.
+func GetPublicKeyID(rawPublicKey []byte) string {
+	rawId := rawPublicKeyID(rawPublicKey)
+	encoded := base64.RawURLEncoding.EncodeToString(rawId)
+	return encoded
+}
+
+// Verifies whether the given ID string matches the public key ID
+func VerifyPublicKeyID(id string, rawPublicKey []byte) bool {
+	rawId := rawPublicKeyID(rawPublicKey)
+	encoded := base64.RawURLEncoding.EncodeToString(rawId)
+	return encoded == id
 }
