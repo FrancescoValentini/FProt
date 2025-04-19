@@ -13,5 +13,6 @@ var (
 // Signature errors
 var (
 	ErrInvalidDataSize  = fmt.Errorf("insufficient data length")
+	ErrHashing          = fmt.Errorf("error while hashing")
 	ErrInvalidSignature = fmt.Errorf("invalid digital signature")
 )
