@@ -1,6 +1,7 @@
 package digitalsignature
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha512"
@@ -37,6 +38,36 @@ func Sign(privateKey *ecdsa.PrivateKey, bufferSize int, input io.Reader) ([]byte
 
 	//4) Serialize
 	return sig.ToBytes(), nil
+}
+
+// Verify a digital signature
+func Verify(signature []byte, bufferSize int, input io.Reader) (bool, SignedInfo, error) {
+	//1) Hash the data
+	contentHash, err := hashData(bufferSize, input)
+	if err != nil {
+		return false, SignedInfo{}, err
+	}
+	//2) Deserialize signature
+	var decodedSig Signature
+	if err := decodedSig.FromBytes(signature); err != nil {
+		return false, SignedInfo{}, err
+	}
+	//3) Check signature
+	publicKey, err := PublicKeyFromBytes(decodedSig.Info.PublicKey[:])
+	if err != nil {
+		return false, SignedInfo{}, err
+	}
+	infoBytes := decodedSig.Info.ToBytes()
+	if !ecdsa.VerifyASN1(publicKey, infoBytes, decodedSig.SignedData[:]) {
+		return false, SignedInfo{}, fmt.Errorf("%w", ErrInvalidSignature)
+	}
+
+	//4) Check hash
+	if !bytes.Equal(decodedSig.Info.ContentHash[:], contentHash) {
+		return false, SignedInfo{}, nil
+	}
+
+	return true, decodedSig.Info, nil
 }
 
 // Generates the structure containing the signature information
