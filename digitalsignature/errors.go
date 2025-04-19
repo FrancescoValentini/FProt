@@ -9,3 +9,9 @@ var (
 	ErrECDSAPrivateKeyLoad  = fmt.Errorf("ECDSA private key loading failed")
 	ErrECDSAPublicKeyDecode = fmt.Errorf("ECDSA public key decoding failed")
 )
+
+// Signature errors
+var (
+	ErrInvalidDataSize  = fmt.Errorf("insufficient data length")
+	ErrInvalidSignature = fmt.Errorf("invalid digital signature")
+)
