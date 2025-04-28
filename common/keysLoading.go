@@ -11,24 +11,30 @@ import (
 	"github.com/FrancescoValentini/FProt/ecies"
 )
 
-// Generates or parses a symmetric encryption key.
-// It takes a keyFlag (either raw key material or a path to a key file),
-// passwordFlag (optional password for key derivation), and verboseFlag
-// (to enable debug output). Returns the derived key as a byte slice.
-// If passwordFlag is provided, it writes the initialization vector to stdout.
-func SymmetricKey(keyFlag string, passwordFlag string, verboseFlag bool) []byte {
-	nonce, _ := cryptography.GenerateRandomBytes(16)                // Generates a random nonce
+// SymmetricKey generates or loads a symmetric encryption key using the provided parameters.
+// It handles both generating new keys and loading existing ones based on the flags provided.
+//   - When loadFlag is false, generates a new random nonce (16 bytes)
+//   - When loadFlag is true and passwordFlag is set, reads the nonce from stdin
+func SymmetricKey(keyFlag string, passwordFlag string, verboseFlag bool, loadFlag bool) []byte {
+	var nonce []byte
+
+	if !loadFlag {
+		nonce, _ = cryptography.GenerateRandomBytes(16) // Generates a random nonce
+	} else if passwordFlag != "" {
+		nonce, _ = cryptography.ReadIV(os.Stdin) // Reads the nonce
+	}
+
+	if passwordFlag != "" && !loadFlag {
+		cryptography.WriteIV(nonce, os.Stdout)
+	}
+
 	key, err := cryptography.ParseKey(keyFlag, passwordFlag, nonce) // parses the key
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
 
-	if passwordFlag != "" {
-		cryptography.WriteIV(nonce, os.Stdout)
-	}
-
-	if verboseFlag {
+	if passwordFlag != "" && verboseFlag {
 		fmt.Fprintln(os.Stderr, "Argon2 Nonce: "+hex.EncodeToString(nonce))
 	}
 	return key

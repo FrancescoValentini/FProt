@@ -4,9 +4,10 @@ import "errors"
 
 // Encoding errors
 var (
-	ErrInvalidBase64           = errors.New("failed to decode base64")
-	ErrInvalidPublicKeyFormat  = errors.New("invalid public key format")
-	ErrInvalidPrivateKeyFormat = errors.New("invalid private key format")
+	ErrInvalidBase64                 = errors.New("failed to decode base64")
+	ErrInvalidPublicKeyFormat        = errors.New("invalid public key format")
+	ErrInvalidPrivateKeyFormat       = errors.New("invalid private key format")
+	ErrInvalidDigitalSignatureFormat = errors.New("invalid digital signature format")
 )
 
 // Files errors
