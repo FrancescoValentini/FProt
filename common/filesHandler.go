@@ -41,6 +41,25 @@ func ReadFile(path string) (string, error) {
 	return string(content), nil
 }
 
+// Reads the contents (as bytes) of a file
+func ReadFileBytes(path string) ([]byte, error) {
+	exists, err := FileExistsAndNotDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, fmt.Errorf("%w: %v", ErrFileNotExist, err)
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrReadingFile, err)
+	}
+
+	return content, nil
+}
+
 // Writes the contents to a file only if the file does not already exist
 func WriteFileIfNotExists(path string, content string) error {
 	exists, err := FileExistsAndNotDir(path)
