@@ -26,6 +26,12 @@ fprot encrypt -r recipient-key.txt < plain.txt > cipher.fprot
 
 # Decrypting a file with a private key
 fprot decrypt -s my-private.txt < cipher.fprot > plain.txt
+
+# Signing a file
+fprot sign -s my-private.txt < file.txt > file_signature.bin
+
+# Verifying a digital signature
+fprot verify --sig file_signature.bin < file.txt
 ```
 
 ## 🔧 Building
