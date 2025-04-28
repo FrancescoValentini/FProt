@@ -59,7 +59,7 @@ func encrypt(cmd *cobra.Command, args []string) {
 	if recipientFlag != "" {
 		key = common.EncryptAsymmetricKey(recipientFlag, os.Stdout, verboseFlag)
 	} else {
-		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag)
+		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag, false)
 	}
 
 	aesGCM, err := cryptography.GetAESGCM(key)

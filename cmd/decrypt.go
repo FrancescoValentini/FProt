@@ -48,8 +48,6 @@ Example:
 func init() {
 	rootCmd.AddCommand(decryptCmd)
 
-	decryptCmd.PersistentFlags().StringP("priv-in", "s", "", "The private (secret) key")
-
 }
 
 func decrypt(cmd *cobra.Command, args []string) {
@@ -62,7 +60,7 @@ func decrypt(cmd *cobra.Command, args []string) {
 	if privateKeyFlag != "" {
 		key = common.DecryptAsymmetricKey(privateKeyFlag, os.Stdin)
 	} else {
-		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag)
+		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag, true)
 	}
 
 	aesGCM, err := cryptography.GetAESGCM(key)
