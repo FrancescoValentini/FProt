@@ -38,7 +38,7 @@ func (si *SignedInfo) FromBytes(data []byte) error {
 	if err := binary.Read(buf, binary.BigEndian, &nano); err != nil {
 		return err
 	}
-	si.Timestamp = time.Unix(0, nano)
+	si.Timestamp = time.Unix(nano, 0)
 
 	copy(si.PublicKey[:], data[TimestampSize:TimestampSize+PublicKeySize])
 	copy(si.PublicKeyID[:], data[TimestampSize+PublicKeySize:TimestampSize+PublicKeySize+PublicKeyIDSize])
