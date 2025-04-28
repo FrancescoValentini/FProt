@@ -15,7 +15,9 @@ func EncodeArmor(signature []byte) string {
 // Decodes a digital signature in base64url
 func DecodeArmor(signature string) ([]byte, error) {
 	if strings.Contains(signature, SIGNATURE_HEADER) {
-		decoded, err := base64.RawURLEncoding.DecodeString(signature)
+		base64sig := strings.TrimPrefix(signature, SIGNATURE_HEADER)
+
+		decoded, err := base64.RawURLEncoding.DecodeString(base64sig)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrInvalidBase64, err)
 		}
