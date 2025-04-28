@@ -76,4 +76,5 @@ func init() {
 	rootCmd.PersistentFlags().StringP("recipient", "r", "", "The recipient public key")
 	rootCmd.PersistentFlags().StringP("key", "k", "", "The raw 256 bit key (hex format)")
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "Verbose mode")
+	rootCmd.PersistentFlags().StringP("priv-in", "s", "", "The private (secret) key for decryption or digital signature")
 }
