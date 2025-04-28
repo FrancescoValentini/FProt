@@ -61,6 +61,8 @@ func verify(cmd *cobra.Command, args []string) {
 
 	if valid {
 		printInfo(info)
+	} else {
+		fmt.Fprintln(os.Stderr, "Invalid Signature")
 	}
 }
 
