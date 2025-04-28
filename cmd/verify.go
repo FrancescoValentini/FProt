@@ -55,7 +55,7 @@ func verify(cmd *cobra.Command, args []string) {
 
 	valid, info, error := digitalsignature.Verify(sig, cryptography.BUFFER_SIZE, os.Stdin)
 	if error != nil {
-		fmt.Fprintln(os.Stderr, "Invalid Signature Error:\n", err)
+		fmt.Fprintln(os.Stderr, "Invalid Signature, Error:\n", err)
 		os.Exit(1)
 	}
 
