@@ -43,7 +43,6 @@ func verify(cmd *cobra.Command, args []string) {
 
 	if armorFlag {
 		sig, err = decodeSignature(signatureFlag)
-		fmt.Fprintf(os.Stderr, "%s\n", signatureFlag)
 	} else {
 		sig, err = common.ReadFileBytes(signatureFlag)
 	}
