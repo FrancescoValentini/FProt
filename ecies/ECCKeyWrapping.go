@@ -11,17 +11,17 @@ import (
 )
 
 // Encrypts a symmetric key for a recipient using their public key.
-func ECCWrapKey(recipient []byte, key []byte) ([]byte, error) {
+func ECCWrapKey(recipient []byte, key []byte) ([]byte, []byte, error) {
 	// 1) Loads the recipient public key
 	recipientPublicKey, err := LoadPublicKey(recipient)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// 2) Generates the ephemeral EC key
 	ephemeralPrivateKey, err := GeneratePrivateKey(rand.Reader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ephemeralPub := ephemeralPrivateKey.PublicKey().Bytes()
@@ -29,7 +29,7 @@ func ECCWrapKey(recipient []byte, key []byte) ([]byte, error) {
 	// 3) Generates the shared secret
 	sharedSecret, err := ephemeralPrivateKey.ECDH(recipientPublicKey)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrSharedSecret, err)
+		return nil, nil, fmt.Errorf("%w: %v", ErrSharedSecret, err)
 	}
 
 	// 4) Derives the AES Wrap key
@@ -39,26 +39,16 @@ func ECCWrapKey(recipient []byte, key []byte) ([]byte, error) {
 	// 5) Wraps the key
 	encryptedKey, err := aesWrapKey(key, wrappingKey)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// encryptedKey = iv + ciphertext + authTag
-	// packedKey = ephemeralPublicKey + encryptedKey
-	packedKey := safeConcat(ephemeralPub, encryptedKey)
 
-	return packedKey, nil
+	return encryptedKey, ephemeralPub, nil
 }
 
 // Decrypts a symmetric key that was wrapped using ECIES
-func ECCUnwrapKey(privateKey *ecdh.PrivateKey, wrappedKey []byte) ([]byte, error) {
-	if len(wrappedKey) < CURVE_PUBLIC_KEY_LENGTH {
-		return nil, fmt.Errorf("%w", ErrInvalidWrappedKey)
-	}
-
-	//1) Recovers the ephemeral public key
-	ephemeralPubBytes := wrappedKey[:CURVE_PUBLIC_KEY_LENGTH]
-	encryptedKey := wrappedKey[CURVE_PUBLIC_KEY_LENGTH:]
-
+func ECCUnwrapKey(privateKey *ecdh.PrivateKey, ephemeralPubBytes []byte, encryptedKey []byte) ([]byte, error) {
 	ephemeralPubKey, err := LoadPublicKey(ephemeralPubBytes)
 	if err != nil {
 		return nil, err
