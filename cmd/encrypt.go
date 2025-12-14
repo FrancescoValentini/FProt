@@ -30,6 +30,7 @@ import (
 
 	"github.com/FrancescoValentini/FProt/common"
 	"github.com/FrancescoValentini/FProt/cryptography"
+	"github.com/FrancescoValentini/FProt/protocol"
 	"github.com/spf13/cobra"
 )
 
@@ -50,33 +51,36 @@ func init() {
 }
 
 func encrypt(cmd *cobra.Command, args []string) {
-	keyFlag, _ := cmd.Flags().GetString("key")
 	passwordFlag, _ := cmd.Flags().GetString("password")
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
-	recipientFlag, _ := cmd.Flags().GetString("recipient")
-	var key []byte
 
-	if recipientFlag != "" {
-		key = common.EncryptAsymmetricKey(recipientFlag, os.Stdout, verboseFlag)
-	} else {
-		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag, false)
-	}
+	recipientFlag, _ := cmd.Flags().GetStringArray("recipient")
+	var entropy []byte
 
-	aesGCM, err := cryptography.GetAESGCM(key)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error creating GCM:", err)
-		os.Exit(1)
-	}
+	recipients := make([]protocol.Recipient, 0)
 	start := time.Now()
-	chunks, err := cryptography.Encrypt(aesGCM, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Encryption failed: %v\n", err)
-		os.Exit(1)
+	if len(recipientFlag) != 0 {
+		entropy, _ = cryptography.GenerateRandomBytes(32)
+		for _, recipient := range recipientFlag {
+			publicKey, err := common.LoadPublic(recipient)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				os.Exit(1)
+			}
+			recipient := protocol.PublicKeyRecipient(publicKey, entropy)
+			recipients = append(recipients, recipient)
+		}
+
+	} else {
+		var recipient protocol.Recipient
+		recipient, entropy = protocol.PasswordRecipient(passwordFlag, verboseFlag)
+		recipients = append(recipients, recipient)
 	}
+
+	chunks := protocol.Encrypt(recipients, entropy, os.Stdin, os.Stdout)
 	end := time.Since(start)
 	if verboseFlag {
 		fmt.Fprintf(os.Stderr, "Elapsed time: %v\n", end)
 		fmt.Fprintf(os.Stderr, "Chunks: %v\n", chunks)
 	}
-
 }
