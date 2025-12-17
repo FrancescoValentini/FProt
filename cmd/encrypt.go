@@ -56,8 +56,17 @@ func encrypt(cmd *cobra.Command, args []string) {
 
 	recipientFlag, _ := cmd.Flags().GetStringArray("recipient")
 	var entropy []byte
-
-	common.CheckCLIArgsEncrypt(passwordFlag, recipientFlag)
+	var err error
+	if passwordFlag == "" && len(recipientFlag) <= 0 {
+		passwordFlag, err = common.ReadPasswordFromTTY(true)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
+	} else if passwordFlag != "" && len(recipientFlag) > 0 {
+		fmt.Fprintln(os.Stderr, "Passwords and public keys cannot be mixed")
+		os.Exit(1)
+	}
 
 	recipients := make([]protocol.Recipient, 0)
 	start := time.Now()

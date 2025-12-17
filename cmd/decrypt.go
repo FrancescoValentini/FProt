@@ -58,7 +58,17 @@ func decrypt(cmd *cobra.Command, args []string) {
 	var entropy []byte
 	var reader io.Reader
 
-	common.CheckCLIArgsDecrypt(passwordFlag, privateKeyFlag, false)
+	var err error
+	if passwordFlag == "" && len(privateKeyFlag) <= 0 {
+		passwordFlag, err = common.ReadPasswordFromTTY(false)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Error:", err)
+			os.Exit(1)
+		}
+	} else if passwordFlag != "" && len(privateKeyFlag) > 0 {
+		fmt.Fprintln(os.Stderr, "Passwords and private keys cannot be mixed")
+		os.Exit(1)
+	}
 
 	start := time.Now()
 	if privateKeyFlag != "" {

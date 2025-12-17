@@ -103,7 +103,8 @@ func RecoverPublicKeyEntropy(privateKeyRaw []byte, r io.Reader) ([]byte, io.Read
 
 	var header FprotHeader
 	if err := header.Unmarshal(br); err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "Error:", err)
+		os.Exit(1)
 	}
 	var status bool
 	recipients := header.Recipients

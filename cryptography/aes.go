@@ -28,10 +28,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
 )
 
 // This method returns the 128-bit block cipher initialized with the given key
@@ -52,12 +50,6 @@ func buildNonce(random []byte, counter uint64) []byte {
 	nonce := make([]byte, GCM_NONCE_LENGTH)
 	copy(nonce[:RANDOM_SIZE], random)
 	binary.BigEndian.PutUint64(nonce[RANDOM_SIZE:], counter)
-
-	fmt.Fprintf(os.Stderr, "RANDOM  : %s\n", hex.EncodeToString(random))
-	counterBuf := make([]byte, COUNTER_SIZE)
-	binary.BigEndian.PutUint64(counterBuf, counter)
-	fmt.Fprintf(os.Stderr, "COUNTER : %s\n", hex.EncodeToString(counterBuf))
-	fmt.Fprintf(os.Stderr, "NONCE   : %s\n", hex.EncodeToString(nonce))
 	return nonce
 }
 
