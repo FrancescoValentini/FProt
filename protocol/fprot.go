@@ -142,8 +142,8 @@ func RecoverPublicKeyEntropy(privateKeyRaw []byte, r io.Reader) ([]byte, io.Read
 //   - output: Writer where encrypted data will be written
 //
 // Returns:
-//   - uint32: Number of encrypted chunks processed
-func Encrypt(recipients []Recipient, entropy []byte, input io.Reader, output io.Writer) uint32 {
+//   - uint64: Number of encrypted chunks processed
+func Encrypt(recipients []Recipient, entropy []byte, input io.Reader, output io.Writer) uint64 {
 	// 1) Derive keys
 	macKey, fileKey := DeriveKeys(entropy)
 
@@ -172,8 +172,8 @@ func Encrypt(recipients []Recipient, entropy []byte, input io.Reader, output io.
 //   - output: Writer where decrypted data will be written
 //
 // Returns:
-//   - uint32: Number of decrypted chunks processed
-func Decrypt(entropy []byte, input io.Reader, output io.Writer) uint32 {
+//   - uint64: Number of decrypted chunks processed
+func Decrypt(entropy []byte, input io.Reader, output io.Writer) uint64 {
 	// 1) Derive keys
 	_, fileKey := DeriveKeys(entropy)
 
