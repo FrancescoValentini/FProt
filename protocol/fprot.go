@@ -54,24 +54,40 @@ func PublicKeyRecipient(publicKey []byte, entropy []byte) Recipient {
 	return rec
 }
 
-// RecoverPasswordEntropy recovers the entropy from password encrypted data.
+// GetHeader reads and parses the FprotHeader from the input reader.
 //
 // Parameters:
-//   - password: The password used for key derivation
-//   - verboseFlag: If true, prints the Argon2 nonce to stderr
-//   - r: The input reader containing the encrypted data
+//   - r: The input reader containing the header data
 //
 // Returns:
-//   - []byte: The recovered entropy key
-//   - io.Reader: A buffered reader positioned at the start of the ciphertext
-func RecoverPasswordEntropy(password string, verboseFlag bool, r io.Reader) ([]byte, io.Reader) {
+//   - FprotHeader: The parsed header
+//   - io.Reader: A buffered reader positioned after the header for reading subsequent data
+//
+// The function exits the program with status code 1 if header parsing fails.
+func GetHeader(r io.Reader) (FprotHeader, io.Reader) {
 	br := bufio.NewReader(r)
 
 	var header FprotHeader
 	if err := header.Unmarshal(br); err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "Error:", ErrHmacVerify)
+		os.Exit(1)
 	}
+	return header, br
+}
 
+// RecoverPasswordEntropy recovers the entropy from password-encrypted data.
+//
+// Parameters:
+//   - password: The password used for key derivation
+//   - header: The parsed file header containing recipient information
+//   - verboseFlag: If true, prints the Argon2 nonce to stderr
+//
+// Returns:
+//   - []byte: The recovered entropy key
+//
+// The function exits the program with status code 1 if HMAC verification fails,
+// indicating either an incorrect password or corrupted data.
+func RecoverPasswordEntropy(password string, header FprotHeader, verboseFlag bool) []byte {
 	nonce := header.Recipients[0].Body
 	entropy := cryptography.Derive256BitKey(password, nonce)
 
@@ -84,31 +100,27 @@ func RecoverPasswordEntropy(password string, verboseFlag bool, r io.Reader) ([]b
 	if verboseFlag {
 		fmt.Fprintln(os.Stderr, "Argon2 Nonce: "+hex.EncodeToString(nonce))
 	}
-	return entropy, br
+	return entropy
 }
 
 // RecoverPublicKeyEntropy recovers the entropy from public-key encrypted data.
-// It reads the header and attempts to unwrap the entropy using the provided private key.
-// Iterates through all recipients until a successful HMAC verification is found.
+// It attempts to unwrap the entropy using the provided private key by iterating
+// through all recipients until successful HMAC verification.
 //
 // Parameters:
-//   - privateKeyRaw: The recipient's raw private key
-//   - r: The input reader containing the encrypted data
+//   - privateKeyRaw: The recipient's raw private key bytes
+//   - header: The parsed file header containing recipient information
 //
 // Returns:
-//   - []byte: The recovered entropy key
-//   - io.Reader: A buffered reader positioned at the start of the ciphertext
-func RecoverPublicKeyEntropy(privateKeyRaw []byte, r io.Reader) ([]byte, io.Reader) {
-	br := bufio.NewReader(r)
-
-	var header FprotHeader
-	if err := header.Unmarshal(br); err != nil {
-		fmt.Fprintln(os.Stderr, "Error:", err)
-		os.Exit(1)
-	}
+//   - []byte: The recovered entropy key, or nil if no successful match found
+//
+// The function exits the program with status code 1 if:
+//   - Private key loading fails
+//   - No recipient's wrapped key can be successfully unwrapped and verified (if HMAC verification fails)
+func RecoverPublicKeyEntropy(privateKeyRaw []byte, header FprotHeader) []byte {
 	var status bool
 	recipients := header.Recipients
-	for _, recipient := range recipients { // for each recipient try to verify the hmac
+	for _, recipient := range recipients {
 		wrapped := recipient.Body
 		ephPublic, _ := base64.StdEncoding.DecodeString(recipient.Args[0])
 		privateKey, err := ecies.LoadPrivateKey(privateKeyRaw)
@@ -121,17 +133,16 @@ func RecoverPublicKeyEntropy(privateKeyRaw []byte, r io.Reader) ([]byte, io.Read
 		hmacKey, _ := DeriveKeys(entropy)
 		status, _ = header.VerifyHeaderHMAC(hmacKey)
 
-		if status { // first match
-			return entropy, br // br is positioned at the ciphertext
+		if status {
+			return entropy
 		}
 	}
 
-	if !status { // If the hmac verification fails
-		fmt.Fprintln(os.Stderr, "Error:", ErrHmacOrNoMatchingPrivate)
-		os.Exit(1)
-	}
+	// If the hmac verification fails for all recipients
+	fmt.Fprintln(os.Stderr, "Error:", ErrHmacOrNoMatchingPrivate)
+	os.Exit(1)
 
-	return nil, nil
+	return nil // This line is unreachable due to os.Exit above
 }
 
 // Encrypt encrypts data using the provided recipients and entropy.

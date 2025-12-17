@@ -69,7 +69,7 @@ func encrypt(cmd *cobra.Command, args []string) {
 	}
 
 	recipients := make([]protocol.Recipient, 0)
-	start := time.Now()
+
 	if len(recipientFlag) != 0 {
 		entropy, _ = cryptography.GenerateRandomBytes(32)
 		for _, recipient := range recipientFlag {
@@ -87,7 +87,7 @@ func encrypt(cmd *cobra.Command, args []string) {
 		recipient, entropy = protocol.PasswordRecipient(passwordFlag, verboseFlag)
 		recipients = append(recipients, recipient)
 	}
-
+	start := time.Now()
 	chunks := protocol.Encrypt(recipients, entropy, os.Stdin, os.Stdout)
 	end := time.Since(start)
 	if verboseFlag {

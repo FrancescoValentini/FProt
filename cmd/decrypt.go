@@ -57,35 +57,50 @@ func decrypt(cmd *cobra.Command, args []string) {
 	privateKeyFlag, _ := cmd.Flags().GetString("priv-in")
 	var entropy []byte
 	var reader io.Reader
+	var header protocol.FprotHeader
 
 	var err error
-	if passwordFlag == "" && len(privateKeyFlag) <= 0 {
-		passwordFlag, err = common.ReadPasswordFromTTY(false)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error:", err)
-			os.Exit(1)
-		}
-	} else if passwordFlag != "" && len(privateKeyFlag) > 0 {
+	if passwordFlag != "" && privateKeyFlag != "" {
 		fmt.Fprintln(os.Stderr, "Passwords and private keys cannot be mixed")
 		os.Exit(1)
 	}
+	header, reader = protocol.GetHeader(os.Stdin)
 
-	start := time.Now()
-	if privateKeyFlag != "" {
-		privateKey, err := common.LoadPrivate(privateKeyFlag)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Error:", err)
+	if isPasswordEncrypted(header.Recipients) {
+		if passwordFlag == "" {
+			passwordFlag, err = common.ReadPasswordFromTTY(false)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				os.Exit(1)
+			}
+		}
+		entropy = protocol.RecoverPasswordEntropy(passwordFlag, header, verboseFlag)
+
+	} else {
+		if privateKeyFlag != "" {
+			privateKey, err := common.LoadPrivate(privateKeyFlag)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				os.Exit(1)
+			}
+			entropy = protocol.RecoverPublicKeyEntropy(privateKey, header)
+		} else {
+			fmt.Fprintln(os.Stderr, "Specify the private key")
 			os.Exit(1)
 		}
-		entropy, reader = protocol.RecoverPublicKeyEntropy(privateKey, os.Stdin)
-	} else {
-		entropy, reader = protocol.RecoverPasswordEntropy(passwordFlag, verboseFlag, os.Stdin)
 	}
-
+	start := time.Now()
 	chunks := protocol.Decrypt(entropy, reader, os.Stdout)
 	end := time.Since(start)
 	if verboseFlag {
 		fmt.Fprintf(os.Stderr, "Elapsed time: %v\n", end)
 		fmt.Fprintf(os.Stderr, "Chunks: %v\n", chunks)
 	}
+}
+
+func isPasswordEncrypted(recipients []protocol.Recipient) bool {
+	if len(recipients) == 1 && recipients[0].Type == "ARGON2" {
+		return true
+	}
+	return false
 }
