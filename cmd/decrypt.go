@@ -52,12 +52,13 @@ func init() {
 }
 
 func decrypt(cmd *cobra.Command, args []string) {
-	//keyFlag, _ := cmd.Flags().GetString("key")
 	passwordFlag, _ := cmd.Flags().GetString("password")
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
 	privateKeyFlag, _ := cmd.Flags().GetString("priv-in")
 	var entropy []byte
 	var reader io.Reader
+
+	common.CheckCLIArgsDecrypt(passwordFlag, privateKeyFlag, false)
 
 	start := time.Now()
 	if privateKeyFlag != "" {

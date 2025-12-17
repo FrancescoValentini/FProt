@@ -57,6 +57,8 @@ func encrypt(cmd *cobra.Command, args []string) {
 	recipientFlag, _ := cmd.Flags().GetStringArray("recipient")
 	var entropy []byte
 
+	common.CheckCLIArgsEncrypt(passwordFlag, recipientFlag)
+
 	recipients := make([]protocol.Recipient, 0)
 	start := time.Now()
 	if len(recipientFlag) != 0 {
