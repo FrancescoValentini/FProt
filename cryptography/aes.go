@@ -54,11 +54,26 @@ func buildNonce(random []byte, counter uint64) []byte {
 }
 
 // buildAAD constructs authenticated associated data.
-// We authenticate the counter and ciphertext length.
-func buildAAD(counter uint64, clen uint32) []byte {
-	aad := make([]byte, COUNTER_SIZE+LEN_FIELD_SIZE)
-	binary.BigEndian.PutUint64(aad[:COUNTER_SIZE], counter)
-	binary.BigEndian.PutUint32(aad[COUNTER_SIZE:], clen)
+//
+// Parameters:
+//   - nonce: A 96-bit (12-byte) nonce to be included in the AAD.
+//   - clen: A 32-bit (4-byte) unsigned integer representing the length of the plaintext
+//     (or ciphertext) in bytes.
+//
+// Returns:
+//   - A byte slice containing the concatenated nonce (12 bytes) followed by the
+//     length field (4 bytes). The resulting slice is used as the AAD in cryptographic
+//     operations.
+func buildAAD(nonce []byte, clen uint32) []byte {
+	// Create a slice of the necessary size: 12 bytes for nonce + 4 bytes for clen
+	aad := make([]byte, len(nonce)+LEN_FIELD_SIZE)
+
+	// Copy the nonce (12 bytes) into the AAD slice
+	copy(aad[:len(nonce)], nonce)
+
+	// Encode the 'clen' field (4 bytes) at the end of the AAD slice
+	binary.BigEndian.PutUint32(aad[len(nonce):], clen)
+
 	return aad
 }
 
@@ -102,7 +117,7 @@ func Encrypt(
 			clen := uint32(n + tagLen)
 
 			// Build AAD: counter + ciphertext length
-			aad := buildAAD(counter, clen)
+			aad := buildAAD(nonce, clen)
 
 			// Encrypt once
 			ciphertext := aesGCM.Seal(nil, nonce, buffer[:n], aad)
@@ -201,7 +216,7 @@ func Decrypt(
 		}
 
 		nonce := buildNonce(randomPart, chunkCounter)
-		aad := buildAAD(chunkCounter, clen)
+		aad := buildAAD(nonce, clen)
 
 		// Decrypt and authenticate
 		plaintext, err := aesGCM.Open(nil, nonce, ciphertext, aad)
