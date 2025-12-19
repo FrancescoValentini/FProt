@@ -25,11 +25,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"time"
 
 	"github.com/FrancescoValentini/FProt/common"
-	"github.com/FrancescoValentini/FProt/cryptography"
+	"github.com/FrancescoValentini/FProt/protocol"
 	"github.com/spf13/cobra"
 )
 
@@ -51,32 +52,55 @@ func init() {
 }
 
 func decrypt(cmd *cobra.Command, args []string) {
-	keyFlag, _ := cmd.Flags().GetString("key")
 	passwordFlag, _ := cmd.Flags().GetString("password")
 	verboseFlag, _ := cmd.Flags().GetBool("verbose")
 	privateKeyFlag, _ := cmd.Flags().GetString("priv-in")
-	var key []byte
+	var entropy []byte
+	var reader io.Reader
+	var header protocol.FprotHeader
 
-	if privateKeyFlag != "" {
-		key = common.DecryptAsymmetricKey(privateKeyFlag, os.Stdin)
-	} else {
-		key = common.SymmetricKey(keyFlag, passwordFlag, verboseFlag, true)
-	}
-
-	aesGCM, err := cryptography.GetAESGCM(key)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error creating GCM:", err)
+	var err error
+	if passwordFlag != "" && privateKeyFlag != "" {
+		fmt.Fprintln(os.Stderr, "Passwords and private keys cannot be mixed")
 		os.Exit(1)
+	}
+	header, reader = protocol.GetHeader(os.Stdin)
+
+	if isPasswordEncrypted(header.Recipients) {
+		if passwordFlag == "" {
+			passwordFlag, err = common.ReadPasswordFromTTY(false)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				os.Exit(1)
+			}
+		}
+		entropy = protocol.RecoverPasswordEntropy(passwordFlag, header, verboseFlag)
+
+	} else {
+		if privateKeyFlag != "" {
+			privateKey, err := common.LoadPrivate(privateKeyFlag)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "Error:", err)
+				os.Exit(1)
+			}
+			entropy = protocol.RecoverPublicKeyEntropy(privateKey, header)
+		} else {
+			fmt.Fprintln(os.Stderr, "Specify the private key")
+			os.Exit(1)
+		}
 	}
 	start := time.Now()
-	chunks, err := cryptography.Decrypt(aesGCM, cryptography.BUFFER_SIZE, os.Stdin, os.Stdout)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Decryption failed: %v\n", err)
-		os.Exit(1)
-	}
+	chunks := protocol.Decrypt(entropy, reader, os.Stdout)
 	end := time.Since(start)
 	if verboseFlag {
 		fmt.Fprintf(os.Stderr, "Elapsed time: %v\n", end)
 		fmt.Fprintf(os.Stderr, "Chunks: %v\n", chunks)
 	}
+}
+
+func isPasswordEncrypted(recipients []protocol.Recipient) bool {
+	if len(recipients) == 1 && recipients[0].Type == "ARGON2" {
+		return true
+	}
+	return false
 }
