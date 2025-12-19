@@ -3,6 +3,7 @@ package ecies
 import (
 	"crypto/ecdh"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/sha512"
 	"fmt"
 	"io"
@@ -33,7 +34,7 @@ func ECCWrapKey(recipient []byte, key []byte) ([]byte, []byte, error) {
 	}
 
 	// 4) Derives the AES Wrap key
-	salt := safeConcat(ephemeralPub, recipient)
+	salt := deriveSalt(safeConcat(ephemeralPub, recipient))
 	wrappingKey := deriveSecretKey(sharedSecret, salt, []byte(HKDF_INFO_SHARED_SECRET), 32)
 
 	// 5) Wraps the key
@@ -62,7 +63,7 @@ func ECCUnwrapKey(privateKey *ecdh.PrivateKey, ephemeralPubBytes []byte, encrypt
 
 	//3) Derives the AES Wrap key
 	recipient := privateKey.PublicKey().Bytes()
-	salt := safeConcat(ephemeralPubBytes, recipient)
+	salt := deriveSalt(safeConcat(ephemeralPubBytes, recipient))
 
 	wrappingKey := deriveSecretKey(sharedSecret, salt, []byte(HKDF_INFO_SHARED_SECRET), 32)
 
@@ -76,4 +77,11 @@ func deriveSecretKey(seed []byte, salt []byte, info []byte, size int) []byte {
 	secretKey := make([]byte, size)
 	io.ReadFull(hkdfReader, secretKey)
 	return secretKey
+}
+
+// Calculate SHA256
+func deriveSalt(data []byte) []byte {
+	hash := sha256.New()
+	hash.Write(data)
+	return hash.Sum(nil)
 }
