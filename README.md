@@ -53,7 +53,7 @@ go build .
 ```
 
 ## 📜 Encrypted File Structure
-[File format description](docs/FORMAT-en.md)
+[File format description](docs/PROTOCOL-en.md)
 
 ## Disclaimer
 I am not a professional cryptographer / developer, and this project was created primarily as my first Go project to learn the language, future updates may introduce changes without notice, potentially breaking compatibility with previous versions (e.g., changes in the encrypted file format). Use at your own risk!
